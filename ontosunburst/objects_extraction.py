@@ -3,14 +3,12 @@ import json
 import os.path
 
 from padmet.utils.sbmlPlugin import convert_from_coded_id
-# from aucomana.utils.utils import *
-# from aucomana.utils.PadmetNetwork import PadmetNetwork
 from padmet.classes import PadmetSpec
-from typing import List, Set, Tuple, Dict
+from typing import List, Set, Tuple
 
 
 # METABOLITES EXTRACTION
-# ====================================================================================================================
+# ==================================================================================================
 
 # From ClusterMap output
 def extract_metabolites_clusters(input_file: str, clust: List[int]) -> Set[str]:
@@ -114,35 +112,35 @@ def extract_iscope_group_metabolites(scope_json, g_file, group_list):
 
 
 # PATHWAYS EXTRACTION
-# ====================================================================================================================
+# ==================================================================================================
 
 # From padmet network
-def extract_pathway_classes(padmet_networks_list: List[str], completion_threshold: float = 0) -> Dict[str, List[str]]:
-    """
-
-    Parameters
-    ----------
-    padmet_networks_list: List[str]
-        List of padmet networks path
-    completion_threshold: float (default=0)
-        Minimal completion rate of the pathway to filter.
-
-    Returns
-    -------
-    Dict[str, List[str]]
-        Dict[pathway_ID, List[pathway_class]] : associate for each pathway, its classes associated.
-    """
-    pw_classes = dict()
+# def extract_pathway_classes(padmet_networks_list: List[str], completion_threshold: float = 0) -> Dict[str, List[str]]:
+#     """
+#
+#     Parameters
+#     ----------
+#     padmet_networks_list: List[str]
+#         List of padmet networks path
+#     completion_threshold: float (default=0)
+#         Minimal completion rate of the pathway to filter.
+#
+#     Returns
+#     -------
+#     Dict[str, List[str]]
+#         Dict[pathway_ID, List[pathway_class]] : associate for each pathway, its classes associated.
+#     """
+#     pw_classes = dict()
     # for species_nw in padmet_networks_list:
     #     sp_nw = PadmetNetwork(species_nw)
     #     for pw_id, pw in sp_nw.pathways.items():
     #         if pw.completion_rate > completion_threshold:
     #             pw_classes[pw_id] = pw.is_class
-    return pw_classes
+    # return pw_classes
 
 
 # GO TERMS EXTRACTION
-# ====================================================================================================================
+# ==================================================================================================
 
 def extract_go_esmecata(sp_annotations):
     go_abundance = dict()
@@ -160,7 +158,7 @@ def extract_go_esmecata(sp_annotations):
 
 
 # EC EXTRACTION
-# ====================================================================================================================
+# ==================================================================================================
 
 def extract_ec_esmecata(sp_annotations):
     ec_set = set()

@@ -1,60 +1,217 @@
-# Ontology_sunburst
+# Ontosunburst
+
+Sunburst visualisation of an ontology representing classes of sets
+of metabolic objects
 
 ## Requirements
 
 Requirements from `requirements.txt`
 
-Install aucomana : https://github.com/PaulineGHG/aucomana.git
-(or comment code if no need of pathway)
+- numpy>=1.22.0
+- padmet>=5.0.1
+- plotly>=5.17.0
+- scipy>=1.8.1
+- SPARQLWrapper>=2.0.0
 
+### Installation
 
+```commandline
+pip install -r requirements.txt
+pip install -e .
+```
 ## Utilisation
+
+### Availabilities
+
+#### 1. **Ontologies :**
+
+- MetaCyc (compounds, reactions and pathways)
+- ChEBI (chebi roles)
+- EC (EC-numbers)
+
+#### 2. **Analysis :**
+
+- Proportion (1 set) : displays proportion representation of all classes
+- Comparison (1 set + 1 reference set) :  displays enrichment analysis
+significance of a set according to a reference set of metabolic objects
 
 ### Inputs
 
 #### Objects sets
 
-Codes to extract some objects (metabolites, pathways, chebi ID, ...) in 
-`obj_extraction.py` used as input for sunburst creation.
+A python collection (list, set, ...) of metabolic objects IDs 
 
-#### Ontology files
+Metabolic objects from some tools outputs can be extracted easily with 
+functions from `obj_extraction`
 
-For metabolites and pathways:
+#### Ontology
 
-- Class file : `Input/classes.json`
-- Padmet ref : `Input/metacyc_26.0_prot70.padmet`
+#### 1. Files (MetaCyc, EC)
 
-For enzymes:
+Intern tool files (in `Inputs` folder) by default
 
-- Ontology : `Input/enzymes_ontology.json`
-- Names : `Input/enzymes_class_names.json`
+Specified user local files
+- MetaCyc (Data Base Padmet Reference (metacyc_x.xx.padmet) + 
+Classes ontology json file)
+- EC (Classes ontology json file + Names json file)
 
-### Run
+#### 2. SPARQL server url (ChEBI)
+
+
+## Run
 
 Codes to run workflows (proportion or comparison) to create sunburst in
-`class_metabolites.py`
+`ontosunburst.py`
 
-#### Example 
 
+### MetaCyc `ontosunburst.ontosunburst.metacyc_ontosunburst`
+
+#### Parameters
+
+---------- REQUIRED ----------
+
+- `metabolic_objects` : `Collection[str]`
+    - Set of metabolic objects to classify
+
+---------- OPTIONAL ----------
+
+- `reference_set` : `Collection[str]` (optional, `default=None`)
+  - Set of reference metabolic objects
+- `output` : `str` (optional, `default=None`)
+  - Path to output to save figure
+- `class_file` : `str` (optional, `default=CLASS_FILE`)
+  - Path to class ontology file
+- `padmet_ref` : `str` (optional, `default=METACYC_FILE`)
+  - Path to metacyc padmet ref file
+- `test` : `str` (optional, `default=BINOMIAL_TEST`)
+  - Type of test for enrichment analysis if reference_set is 
+not None
+- `full` : `bool` (optional, `default=True`)
+  - True to duplicate labels if +1 parents (False to take exactly 
+1 random parent)
+- `total` : `bool` (optional, `default=True`)
+  - True to have branch values proportional of the total parent 
+(may not work in some cases)
+
+#### Example
+
+```python
+from ontosunburst.ontosunburst import metacyc_ontosunburst
+
+MET_SET = {'CPD-24674', 'CPD-24687', 'CPD-24688'}
+REF_MET = {'CPD-24674', 'CPD-24687', 'CPD-24688',
+           'CPD-12782', 'CPD-12784', 'CPD-12787',
+           'CPD-12788', 'CPD-12789', 'CPD-12796',
+           'CPD-12797', 'CPD-12798', 'CPD-12805',
+           'CPD-12806', 'CPD-12812', 'CPD-12816',
+           'CPD-1282', 'CPD-12824', 'CPD-1283'}
+
+# PROPORTION
+metacyc_ontosunburst(metabolic_objects=REF_MET, 
+                     output='test')
+
+# COMPARISON
+metacyc_ontosunburst(metabolic_objects=MET_SET, 
+                     reference_set=REF_MET, 
+                     output='test')
 ```
-CLASS_FILE = 'Inputs/classes.json'
-P_REF = 'Inputs/metacyc_26.0_prot70.padmet'
-INPUT_FILE = 'Path/To/clusters.tsv'
 
-CLUST_CYAN = [7, 8]
-CLUST_PINK = [3, 4, 5, 6]
-CLUST_ALL = list(range(1, 12))
+### EC `ontosunburst.ontosunburst.ec_ontosunburst`
 
-MET_CYAN = extract_metabolites_clusters(INPUT_FILE, CLUST_CYAN)
-MET_PINK = extract_metabolites_clusters(INPUT_FILE, CLUST_PINK)
-MET_ALL = extract_metabolites_clusters(INPUT_FILE, CLUST_ALL)
+#### Parameters
 
-proportion_workflow(MET_CYAN, CLASS_FILE, P_REF, 'Output/prop_cyan', True)
-proportion_workflow(MET_PINK, CLASS_FILE, P_REF, 'Output/prop_pink', True)
-proportion_workflow(MET_ALL, CLASS_FILE, P_REF, 'Output/prop_all', True)
+---------- REQUIRED ----------
 
-comparison_workflow(MET_CYAN, MET_ALL, CLASS_FILE, P_REF, 'Output/diff_cyan_all_bin', 'Binomial')
-comparison_workflow(MET_PINK, MET_ALL, CLASS_FILE, P_REF, 'Output/diff_pink_all_bin', 'Binomial')
-comparison_workflow(MET_CYAN, MET_ALL, CLASS_FILE, P_REF, 'Output/diff_cyan_all_hyp', 'Hypergeometric')
-comparison_workflow(MET_PINK, MET_ALL, CLASS_FILE, P_REF, 'Output/diff_pink_all_hyp', 'Hypergeometric')
+- `ec_set` : `Collection[str]`
+  - Set of EC numbers objects to classify (format "x.x.x.x" or "x.x.x.-")
+
+---------- OPTIONAL ----------
+
+- `reference_set` : `Collection[str]` (optional, `default=None`)
+  - Set of reference metabolic objects
+- `output` : `str` (optional, `default=None`)
+  - Path to output to save figure
+- `class_file` : `str` (optional, `default=ENZYME_ONTO_FILE`)
+  - Path to class ontology file
+- `names_file` : `str` (optional, `default=NAMES_FILE`)
+  - Path to EC_ID - EC_NAME association json file
+- `test` : `str` (optional, `default=BINOMIAL_TEST`)
+  - Type of test for enrichment analysis if reference_set is 
+not None
+- `full` : `bool` (optional, `default=True`)
+  - True to duplicate labels if +1 parents (False to take exactly 
+1 random parent)
+- `total` : `bool` (optional, `default=True`)
+  - True to have branch values proportional of the total parent 
+(may not work in some cases)
+
+#### Example
+
+```python
+from  ontosunburst.ontosunburst import ec_ontosunburst
+
+EC_SET = {'2.6.1.45', '1.1.1.25', '1.1.1.140'}
+REF_EC = {'2.6.1.45', '1.1.1.25', '1.1.1.140',
+          '1.14.14.52', '2.7.1.137', '7.1.1.8',
+          '1.17.4.5', '2.3.1.165', '3.2.1.53',
+          '3.2.1.91', '6.3.4.2', '5.4.99.8'}
+
+# PROPORTION
+ec_ontosunburst(ec_set=REF_EC, 
+                output='test')
+
+# COMPARISON
+ec_ontosunburst(ec_set=EC_SET, 
+                reference_set=REF_EC, 
+                output='test')
+```
+
+### ChEBI ` ontosunburst.ontosunburst.chebi_ontosunburst`
+
+#### Parameters
+
+---------- REQUIRED ----------
+
+- `chebi_ids` : `Collection[str]`
+  - Set of ChEBI IDs to classify
+- `endpoint_url` : `str`
+  - URL of ChEBI ontology for SPARQL requests
+
+---------- OPTIONAL ----------
+
+- `reference_set` : `Collection[str]` (optional, `default=None`)
+  - Set of reference metabolic objects
+- `output` : `str` (optional, `default=None`)
+  - Path to output to save figure
+- `test` : `str` (optional, `default=BINOMIAL_TEST`)
+  - Type of test for enrichment analysis if reference_set is 
+not None
+- `full` : `bool` (optional, `default=True`)
+  - True to duplicate labels if +1 parents (False to take exactly 
+1 random parent)
+- `total` : `bool` (optional, `default=True`)
+  - True to have branch values proportional of the total parent 
+(may not work in some cases)
+
+#### Example
+
+```python
+from  ontosunburst.ontosunburst import chebi_ontosunburst
+
+URL = 'http://localhost:3030/chebi/'
+CH_SET = {'38028', '28604', '85146'}
+REF_CH = {'38028', '28604', '85146',
+          '23066', '27803', '37565',
+          '58215', '79983', '42639'}
+
+# PROPORTION
+chebi_ontosunburst(chebi_ids=REF_CH, 
+                   endpoint_url=URL, 
+                   output='test_chebi_prop')
+
+# COMPARISON
+chebi_ontosunburst(chebi_ids=CH_SET, 
+                   reference_set=REF_CH, 
+                   endpoint_url=URL,
+                   output='test_chebi_comp')
 ```

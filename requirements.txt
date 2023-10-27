@@ -1,6 +1,5 @@
-dash>=2.12.1
 numpy>=1.22.0
 padmet>=5.0.1
-plotly>=5.16.1
+plotly>=5.17.0
 scipy>=1.8.1
 SPARQLWrapper>=2.0.0
