@@ -105,16 +105,25 @@ REF_MET = {'CPD-24674', 'CPD-24687', 'CPD-24688',
            'CPD-12797', 'CPD-12798', 'CPD-12805',
            'CPD-12806', 'CPD-12812', 'CPD-12816',
            'CPD-1282', 'CPD-12824', 'CPD-1283'}
+```
 
+
+```python
 # PROPORTION
 metacyc_ontosunburst(metabolic_objects=REF_MET, 
                      output='test')
+```
+![MetaCyc Proportion figure](https://github.com/PaulineGHG/Ontology_sunburst/blob/main/tests/expected_figures/png/test_mc_cpd_prop.png)
 
+
+```python
 # COMPARISON
 metacyc_ontosunburst(metabolic_objects=MET_SET, 
                      reference_set=REF_MET, 
                      output='test')
 ```
+![MetaCyc Comparison figure](https://github.com/PaulineGHG/Ontology_sunburst/blob/main/tests/expected_figures/png/test_mc_cpd_comp.png)
+
 
 ### EC `ontosunburst.ontosunburst.ec_ontosunburst`
 
@@ -155,16 +164,24 @@ REF_EC = {'2.6.1.45', '1.1.1.25', '1.1.1.140',
           '1.14.14.52', '2.7.1.137', '7.1.1.8',
           '1.17.4.5', '2.3.1.165', '3.2.1.53',
           '3.2.1.91', '6.3.4.2', '5.4.99.8'}
+```
 
+
+```python
 # PROPORTION
 ec_ontosunburst(ec_set=REF_EC, 
                 output='test')
+```
+![EC Proportion figure](https://github.com/PaulineGHG/Ontology_sunburst/blob/main/tests/expected_figures/png/test_ec_prop.png)
 
+
+```python
 # COMPARISON
 ec_ontosunburst(ec_set=EC_SET, 
                 reference_set=REF_EC, 
                 output='test')
 ```
+![EC Comparison figure](https://github.com/PaulineGHG/Ontology_sunburst/blob/main/tests/expected_figures/png/test_ec_comp.png)
 
 ### ChEBI ` ontosunburst.ontosunburst.chebi_ontosunburst`
 
@@ -203,15 +220,23 @@ CH_SET = {'38028', '28604', '85146'}
 REF_CH = {'38028', '28604', '85146',
           '23066', '27803', '37565',
           '58215', '79983', '42639'}
+```
 
+
+```python
 # PROPORTION
 chebi_ontosunburst(chebi_ids=REF_CH, 
                    endpoint_url=URL, 
                    output='test_chebi_prop')
+```
+![ChEBI Proportion figure](https://github.com/PaulineGHG/Ontology_sunburst/blob/main/tests/expected_figures/png/test_chebi_prop.png)
 
+
+```python
 # COMPARISON
 chebi_ontosunburst(chebi_ids=CH_SET, 
                    reference_set=REF_CH, 
                    endpoint_url=URL,
                    output='test_chebi_comp')
 ```
+![ChEBI Comparison figure](https://github.com/PaulineGHG/Ontology_sunburst/blob/main/tests/expected_figures/png/test_chebi_comp.png)
