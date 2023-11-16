@@ -33,26 +33,32 @@ REF_PWY = {'2ASDEG-PWY', '4AMINOBUTMETAB-PWY', 'ALLANTOINDEG-PWY',
 class MetacycTest(unittest.TestCase):
     # Compounds
     def test_cpd_metacyc_proportion(self):
-        metacyc_ontosunburst(metabolic_objects=REF_MET, output='test_mc_cpd_prop')
+        fig = metacyc_ontosunburst(metabolic_objects=REF_MET, output='test_mc_cpd_prop')
+        fig.write_image('test_mc_cpd_prop.png', width=1900, height=1000, scale=1)
 
     def test_cpd_metacyc_comparison(self):
-        metacyc_ontosunburst(metabolic_objects=MET_SET, reference_set=REF_MET,
-                             output='test_mc_cpd_comp')
+        fig = metacyc_ontosunburst(metabolic_objects=MET_SET, reference_set=REF_MET,
+                                   output='test_mc_cpd_comp')
+        fig.write_image('test_mc_cpd_comp.png', width=1900, height=1000, scale=1)
     # Reactions
     def test_rxn_metacyc_proportion(self):
-        metacyc_ontosunburst(metabolic_objects=REF_RXN, output='test_mc_rxn_prop')
+        fig = metacyc_ontosunburst(metabolic_objects=REF_RXN, output='test_mc_rxn_prop')
+        fig.write_image('test_mc_rxn_prop.png', width=1900, height=1000, scale=1)
 
     def test_rxn_metacyc_comparison(self):
-        metacyc_ontosunburst(metabolic_objects=RXN_SET, reference_set=REF_RXN,
-                             output='test_mc_rxn_comp')
+        fig = metacyc_ontosunburst(metabolic_objects=RXN_SET, reference_set=REF_RXN,
+                                   output='test_mc_rxn_comp')
+        fig.write_image('test_mc_rxn_comp.png', width=1900, height=1000, scale=1)
 
     # Pathways
     def test_pwy_metacyc_proportion(self):
-        metacyc_ontosunburst(metabolic_objects=REF_PWY, output='test_mc_pwy_prop')
+        fig = metacyc_ontosunburst(metabolic_objects=REF_PWY, output='test_mc_pwy_prop')
+        fig.write_image('test_mc_pwy_prop.png', width=1900, height=1000, scale=1)
 
     def test_pwy_metacyc_comparison(self):
-        metacyc_ontosunburst(metabolic_objects=PWY_SET, reference_set=REF_PWY,
-                             output='test_mc_pwy_comp')
+        fig = metacyc_ontosunburst(metabolic_objects=PWY_SET, reference_set=REF_PWY,
+                                   output='test_mc_pwy_comp')
+        fig.write_image('test_mc_pwy_comp.png', width=1900, height=1000, scale=1)
 
 
 # EC
@@ -68,10 +74,12 @@ REF_EC = {'2.6.1.45', '1.1.1.25', '1.1.1.140',
 class EcTest(unittest.TestCase):
 
     def test_ec_proportion(self):
-        ec_ontosunburst(ec_set=REF_EC, output='test_ec_prop')
+        fig = ec_ontosunburst(ec_set=REF_EC, output='test_ec_prop')
+        fig.write_image('test_ec_prop.png', width=1900, height=1000, scale=1)
 
     def test_ec_comparison(self):
-        ec_ontosunburst(ec_set=EC_SET, reference_set=REF_EC, output='test_ec_comp')
+        fig = ec_ontosunburst(ec_set=EC_SET, reference_set=REF_EC, output='test_ec_comp')
+        fig.write_image('test_ec_comp.png', width=1900, height=1000, scale=1)
 
 
 # CHEBI
@@ -87,8 +95,10 @@ REF_CH = {'38028', '28604', '85146',
 class ChEbiTest(unittest.TestCase):
 
     def test_chebi_proportion(self):
-        chebi_ontosunburst(chebi_ids=REF_CH, endpoint_url=URL, output='test_chebi_prop')
+        fig = chebi_ontosunburst(chebi_ids=REF_CH, endpoint_url=URL, output='test_chebi_prop')
+        fig.write_image('test_chebi_prop.png', width=1900, height=1000, scale=1)
 
     def test_chebi_comparison(self):
-        chebi_ontosunburst(chebi_ids=CH_SET, reference_set=REF_CH, endpoint_url=URL,
-                           output='test_chebi_comp')
+        fig = chebi_ontosunburst(chebi_ids=CH_SET, reference_set=REF_CH, endpoint_url=URL,
+                                 output='test_chebi_comp')
+        fig.write_image('test_chebi_comp.png', width=1900, height=1000, scale=1)

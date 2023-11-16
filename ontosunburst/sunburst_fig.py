@@ -7,11 +7,20 @@ import scipy.stats as stats
 
 # CONSTANTS
 # ==================================================================================================
+# Comparison tests
 BINOMIAL_TEST = 'Binomial'
 HYPERGEO_TEST = 'Hypergeometric'
 
+# Analysis method
 COMPARISON_METHOD = 'comparison'
 PROPORTION_METHOD = 'proportion'
+
+MAX_RELATIVE_NB = 1000000
+
+# Root cut
+ROOT_CUT = 'cut'
+ROOT_TOTAL_CUT = 'total'
+ROOT_UNCUT = 'uncut'
 
 # Keys
 # ----
@@ -240,7 +249,7 @@ def get_relative_prop(data: Dict[str, List], p_id: str):
             - branch proportion : Relative_prop --> + actual children values
     """
     if p_id == '':
-        prop_p = 1000000
+        prop_p = MAX_RELATIVE_NB
         count_p = max(data[COUNT])
     else:
         prop_p = data[R_PROP][data[IDS].index(p_id)]
@@ -339,9 +348,47 @@ def get_data_enrichment_analysis(data: Dict[str, List], ref_classes_abundance: D
     return data, significant_representation
 
 
+def data_cut_root(data: Dict[str, List], mode: str) -> Dict[str, List]:
+    """ Filter data to cut (or not) the root to remove not necessary 100% represented classes.
+
+    Parameters
+    ----------
+    data: Dict[str, List]
+        Dictionary of figure parameters
+    mode: str
+        Mode of root cutting
+        - uncut: doesn't cut and keep all nodes from ontology root
+        - cut: keep only the lowest level 100% shared node
+        - total: remove all 100% shared nodes (produces a pie at center)
+
+    Returns
+    -------
+    data: Dict[str, List]
+        Dictionary of figure parameters with root cut applied
+    """
+    if mode not in {ROOT_UNCUT, ROOT_CUT, ROOT_TOTAL_CUT}:
+        raise ValueError(f'Root cutting mode {mode} unknown, '
+                         f'must be in {[ROOT_UNCUT, ROOT_CUT, ROOT_TOTAL_CUT]}')
+    if mode == ROOT_UNCUT:
+        return data
+    else:
+        roots_ind = [i for i in range(len(data[IDS])) if data[R_PROP][i] == MAX_RELATIVE_NB]
+        roots = [data[IDS][i] for i in roots_ind]
+        for root_id in roots:
+            root_ind = data[IDS].index(root_id)
+            for v in data.values():
+                del v[root_ind]
+
+        if mode == ROOT_TOTAL_CUT:
+            data[PARENT] = ['' if x in roots else x for x in data[PARENT]]
+
+    return data
+
+
 def generate_sunburst_fig(data: Dict[str, List[str or int or float]], output: str = None,
                           sb_type: str = PROPORTION_METHOD, ref_classes_abundance=None,
-                          test=BINOMIAL_TEST, names: bool = False, total: bool = True):
+                          test=BINOMIAL_TEST, names: bool = False, total: bool = True,
+                          root_cut: str = ROOT_CUT) -> go.Figure:
     """ Generate a Sunburst figure and save it to output path.
 
     Parameters
@@ -365,7 +412,14 @@ def generate_sunburst_fig(data: Dict[str, List[str or int or float]], output: st
         True if names associated with labels, False otherwise
     total: bool (optional, default=True)
         True to have branch values proportional of the total parent
+    root_cut: str (optional, default=ROOT_CUT)
+        mode for root cutting (uncut, cut, total)
+
+    Returns
+    -------
+    go.Figure
     """
+    data = data_cut_root(data, root_cut)
     if total:
         branch_values = 'total'
         values = data[R_PROP]
@@ -382,7 +436,7 @@ def generate_sunburst_fig(data: Dict[str, List[str or int or float]], output: st
                                                f'ID: {data[IDS][i]}'
                                                for i in range(len(data[PROP]))],
                                     marker=dict(colors=data[COUNT],
-                                                colorscale=px.colors.diverging.curl_r,
+                                                colorscale=px.colors.sequential.Viridis,
                                                 cmid=0.5 * max(data[COUNT]), showscale=True,
                                                 colorbar=dict(title=dict(text='Count')))))
         fig.update_layout(title=dict(text='Proportion of classes', x=0.5, xanchor='center'))

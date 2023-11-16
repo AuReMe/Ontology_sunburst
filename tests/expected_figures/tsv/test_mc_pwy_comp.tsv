@@ -1,4 +1,4 @@
 Compound	Classes	Common names	MetaCyc link
-2ASDEG-PWY	FRAMES, AROMATIC-COMPOUNDS-DEGRADATION, Generalized-Reactions, Degradation, Pathways	orthanilate degradation	https://metacyc.org/compound?orgid=META&id=2ASDEG-PWY
-ALLANTOINDEG-PWY	FRAMES, Super-Pathways, AMINE-DEG, Allantoin-degradation, Pathways, Generalized-Reactions, Degradation	superpathway of allantoin degradation in yeast	https://metacyc.org/compound?orgid=META&id=ALLANTOINDEG-PWY
-4AMINOBUTMETAB-PWY	FRAMES, Super-Pathways, AMINE-DEG, Pathways, 4-Aminobutyraye-Degradation, Generalized-Reactions, Degradation	superpathway of 4-aminobutanoate degradation	https://metacyc.org/compound?orgid=META&id=4AMINOBUTMETAB-PWY
+4AMINOBUTMETAB-PWY	Degradation, AMINE-DEG, FRAMES, Generalized-Reactions, 4-Aminobutyraye-Degradation, Super-Pathways, Pathways	superpathway of 4-aminobutanoate degradation	https://metacyc.org/compound?orgid=META&id=4AMINOBUTMETAB-PWY
+2ASDEG-PWY	Degradation, Generalized-Reactions, FRAMES, Pathways, AROMATIC-COMPOUNDS-DEGRADATION	orthanilate degradation	https://metacyc.org/compound?orgid=META&id=2ASDEG-PWY
+ALLANTOINDEG-PWY	Degradation, AMINE-DEG, FRAMES, Generalized-Reactions, Allantoin-degradation, Super-Pathways, Pathways	superpathway of allantoin degradation in yeast	https://metacyc.org/compound?orgid=META&id=ALLANTOINDEG-PWY

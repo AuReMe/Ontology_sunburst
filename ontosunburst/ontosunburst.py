@@ -9,7 +9,7 @@ from ontosunburst.ontology import get_all_classes, get_classes_abondance, get_ch
     extract_chebi_roles, extract_metacyc_classes, extract_ec_classes
 
 from ontosunburst.sunburst_fig import get_fig_parameters, get_data_proportion, \
-    generate_sunburst_fig, BINOMIAL_TEST, COMPARISON_METHOD, PROPORTION_METHOD
+    generate_sunburst_fig, BINOMIAL_TEST, COMPARISON_METHOD, PROPORTION_METHOD, ROOT_CUT
 
 
 # CONSTANTS ========================================================================================
@@ -35,7 +35,8 @@ EC_ROOT = 'Enzyme'
 def metacyc_ontosunburst(metabolic_objects: Collection[str], reference_set: Collection[str] = None,
                          output: str = None, class_file: str = CLASS_FILE,
                          padmet_ref: str = METACYC_FILE, test: str = BINOMIAL_TEST,
-                         full: bool = True, total: bool = True) -> go.Figure:
+                         full: bool = True, total: bool = True, root_cut: str = ROOT_CUT) \
+        -> go.Figure:
     """ Classify and plot a sunburst from a list of metabolic objects with MetaCyc ontology Ids
 
     Parameters
@@ -56,6 +57,8 @@ def metacyc_ontosunburst(metabolic_objects: Collection[str], reference_set: Coll
         True to duplicate labels if +1 parents (False to take exactly 1 random parent)
     total: bool (optional, default=True)
         True to have branch values proportional of the total parent (may not work in some cases)
+    root_cut: str (optional, default=ROOT_CUT)
+        mode for root cutting (uncut, cut, total)
 
     Returns
     -------
@@ -77,20 +80,25 @@ def metacyc_ontosunburst(metabolic_objects: Collection[str], reference_set: Coll
         if output is not None:
             write_met_classes(obj_all_classes, output, padmet_ref)
         ref_leaf_classes = extract_metacyc_classes(reference_set, padmet_ref)
-        return comparison_analysis(ref_leaf_classes, classes_abundance, d_classes_ontology, output,
-                                   full, None, total, test, METACYC_ROOT)
+        return comparison_analysis(ref_leaf_classes=ref_leaf_classes,
+                                   classes_abundance=classes_abundance,
+                                   d_classes_ontology=d_classes_ontology,
+                                   output=output, full=full, names=None, total=total, test=test,
+                                   root=METACYC_ROOT, root_cut=root_cut)
     # Proportion figure
     else:
         if output is not None:
             write_met_classes(obj_all_classes, output, padmet_ref)
-        return proportion_analysis(classes_abundance, d_classes_ontology, output, full, None, total,
-                                   METACYC_ROOT)
+        return proportion_analysis(classes_abundance=classes_abundance,
+                                   d_classes_ontology=d_classes_ontology,
+                                   output=output, full=full, names=None, total=total,
+                                   root=METACYC_ROOT, root_cut=root_cut)
 
 
 def chebi_ontosunburst(chebi_ids: Collection[str], endpoint_url: str,
                        reference_set: Collection[str] = None, output: str = None,
-                       test: str = BINOMIAL_TEST, full: bool = True, total: bool = True) \
-        -> go.Figure:
+                       test: str = BINOMIAL_TEST, full: bool = True, total: bool = True,
+                       root_cut: str = ROOT_CUT) -> go.Figure:
     """ Classify and plot a sunburst from a list of ChEBI IDs with ChEBI roles ontology
 
     Parameters
@@ -109,6 +117,8 @@ def chebi_ontosunburst(chebi_ids: Collection[str], endpoint_url: str,
         True to duplicate labels if +1 parents (False to take exactly 1 random parent)
     total: bool (optional, default=True)
         True to have branch values proportional of the total parent (may not work in some cases)
+    root_cut: str (optional, default=ROOT_CUT)
+        mode for root cutting (uncut, cut, total)
 
     Returns
     -------
@@ -122,18 +132,23 @@ def chebi_ontosunburst(chebi_ids: Collection[str], endpoint_url: str,
     # Comparison figure
     if reference_set is not None:
         ref_all_classes, d_roles_ontology = extract_chebi_roles(reference_set, endpoint_url)
-        return comparison_analysis(ref_all_classes, classes_abondance, d_roles_ontology, output,
-                                   full, None, total, test, CHEBI_ROLE_ROOT)
+        return comparison_analysis(ref_leaf_classes=ref_all_classes,
+                                   classes_abundance=classes_abondance,
+                                   d_classes_ontology=d_roles_ontology,
+                                   output=output, full=full, names=None, total=total, test=test,
+                                   root=CHEBI_ROLE_ROOT, root_cut=root_cut)
     # Proportion figure
     else:
-        return proportion_analysis(classes_abondance, d_roles_ontology, output, full, None, total,
-                                   CHEBI_ROLE_ROOT)
+        return proportion_analysis(classes_abundance=classes_abondance,
+                                   d_classes_ontology=d_roles_ontology,
+                                   output=output, full=full, names=None, total=total,
+                                   root=CHEBI_ROLE_ROOT, root_cut=root_cut)
 
 
 def ec_ontosunburst(ec_set: Collection[str], reference_set: Collection[str] = None,
                     output: str = None, class_file: str = ENZYME_ONTO_FILE,
                     names_file: str = NAMES_FILE, test: str = BINOMIAL_TEST,
-                    full: bool = True, total: bool = True) -> go.Figure:
+                    full: bool = True, total: bool = True, root_cut: str = ROOT_CUT) -> go.Figure:
     """ Classify and plot a sunburst from a list of EC numbers with EC ontology Ids
 
     Parameters
@@ -154,6 +169,8 @@ def ec_ontosunburst(ec_set: Collection[str], reference_set: Collection[str] = No
         True to duplicate labels if +1 parents (False to take exactly 1 random parent)
     total: bool (optional, default=True)
         True to have branch values proportional of the total parent (may not work in some cases)
+    root_cut: str (optional, default=ROOT_CUT)
+        mode for root cutting (uncut, cut, total)
 
     Returns
     -------
@@ -174,27 +191,71 @@ def ec_ontosunburst(ec_set: Collection[str], reference_set: Collection[str] = No
     # Comparison figure
     if reference_set is not None:
         ref_leaf_classes = extract_ec_classes(reference_set)
-        return comparison_analysis(ref_leaf_classes, classes_abundance, d_classes_ontology, output,
-                                   full, names, total, test, EC_ROOT)
+        return comparison_analysis(ref_leaf_classes=ref_leaf_classes,
+                                   classes_abundance=classes_abundance,
+                                   d_classes_ontology=d_classes_ontology,
+                                   output=output, full=full, names=names, total=total, test=test,
+                                   root=EC_ROOT, root_cut=root_cut)
     # Proportion figure
     else:
-        return proportion_analysis(classes_abundance, d_classes_ontology, output, full, names,
-                                   total, EC_ROOT)
+        return proportion_analysis(classes_abundance=classes_abundance,
+                                   d_classes_ontology=d_classes_ontology,
+                                   output=output, full=full, names=names,
+                                   total=total, root=EC_ROOT, root_cut=root_cut)
 
 
 # FUNCTIONS ========================================================================================
 
-def proportion_analysis(classes_abundance, d_classes_ontology, output, full, names, total, root):
+def proportion_analysis(classes_abundance, d_classes_ontology, output, full, names, total, root,
+                        root_cut) -> go.Figure:
+    """ Performs the proportion analysis
+
+    Parameters
+    ----------
+    classes_abundance
+    d_classes_ontology
+    output
+    full
+    names
+    total
+    root
+    root_cut
+
+    Returns
+    -------
+    go.Figure
+        Plotly graph_objects figure of the sunburst
+    """
     data = get_fig_parameters(classes_abundance, d_classes_ontology,
                               get_children_dict(d_classes_ontology), root, full, names)
     data = get_data_proportion(data, total)
     names = names is not None
     return generate_sunburst_fig(data=data, output=output, sb_type=PROPORTION_METHOD,
-                                 names=names, total=total)
+                                 names=names, total=total, root_cut=root_cut)
 
 
 def comparison_analysis(ref_leaf_classes, classes_abundance, d_classes_ontology, output, full,
-                        names, total, test, root):
+                        names, total, test, root, root_cut) -> go.Figure:
+    """ Performs the comparison analysis
+
+    Parameters
+    ----------
+    ref_leaf_classes
+    classes_abundance
+    d_classes_ontology
+    output
+    full
+    names
+    total
+    test
+    root
+    root_cut
+
+    Returns
+    -------
+    go.Figure
+        Plotly graph_objects figure of the sunburst
+    """
     if root == CHEBI_ROLE_ROOT:
         ref_all_classes = ref_leaf_classes
     else:
@@ -207,7 +268,7 @@ def comparison_analysis(ref_leaf_classes, classes_abundance, d_classes_ontology,
     names = names is not None
     return generate_sunburst_fig(data=data, output=output, sb_type=COMPARISON_METHOD,
                                  ref_classes_abundance=ref_classes_abundance, test=test, names=names,
-                                 total=total)
+                                 total=total, root_cut=root_cut)
 
 
 def write_met_classes(all_classes, output, pref):
