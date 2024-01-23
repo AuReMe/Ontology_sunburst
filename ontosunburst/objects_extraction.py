@@ -76,13 +76,14 @@ def extract_host_metabolites_m2m(input_directory: str) -> Set[str]:
 
 
 # From Padmet Network
-def extract_network_metabolites(network_file: str) -> Set[str]:
+def extract_network_metabolites(network_file: str, consumes: bool = False) -> Set[str]:
     """
 
     Parameters
     ----------
     network_file: str
         Path to padmet network file.
+    consumes: bool
 
     Returns
     -------
@@ -90,7 +91,10 @@ def extract_network_metabolites(network_file: str) -> Set[str]:
         Set of metabolites from the metabolic network.
     """
     padmet = PadmetSpec(network_file)
-    me = {rel.id_out for rel in padmet.getAllRelation() if rel.type in ['produces', 'consumes']}
+    test_set = ['produces']
+    if consumes:
+        test_set.append('consumes')
+    me = {rel.id_out for rel in padmet.getAllRelation() if rel.type in test_set}
     me.remove('Bio')
     return me
 

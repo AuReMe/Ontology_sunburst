@@ -9,7 +9,7 @@ setup(
     long_description='Ontology_sunburst allows to represent a set of element (compounds, reactions, pathways, etc..) '
                      'throught a sunburst diagram showing proportion of ontology classes. Works for Metacyc, Chebi '
                      'roles and EC ontologies.',
-    install_requires=['dash', 'numpy', 'padmet', 'plotly', 'scipy', 'SPARQLWrapper'],
+    install_requires=['numpy', 'padmet', 'plotly', 'scipy', 'SPARQLWrapper'],
     url='https://github.com/AuReMe/Ontology_sunburst.git',
     license='GPLv3+',
     python_requires='>=3.9',

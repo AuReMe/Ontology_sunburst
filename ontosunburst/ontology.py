@@ -3,6 +3,24 @@ from typing import List, Set, Dict, Tuple, Collection
 from SPARQLWrapper import SPARQLWrapper, JSON
 
 
+# CONSTANTS ========================================================================================
+
+
+METACYC = 'metacyc'
+EC = 'ec'
+CHEBI = 'chebi'
+GO = 'go'
+KEGG = 'kegg'
+
+ROOTS = {METACYC: 'FRAMES',
+         CHEBI: 'role',
+         EC: 'Enzyme',
+         GO: 'GO',
+         KEGG: 'kegg'}
+
+GO_ROOTS = ['cellular_component', 'biological_process', 'molecular_function']
+
+
 # For MetaCyc Ontology
 # --------------------------------------------------------------------------------------------------
 def get_dict_ontology(padmet_ref: padmet.classes.PadmetRef):
@@ -22,15 +40,15 @@ def get_dict_ontology(padmet_ref: padmet.classes.PadmetRef):
 
 
 def extract_metacyc_classes(metabolic_objects: Collection[str],
-                            padmet_ref: padmet.classes.PadmetRef) -> Dict[str, List[str]]:
+                            d_classes_ontology: Dict[str, List[str]]) -> Dict[str, List[str]]:
     """ Extract +1 parent classes for each metabolite.
 
     Parameters
     ----------
     metabolic_objects: Collection[str]
         Collection of metabolic objects.
-    padmet_ref: padmet.classes.PadmetRef
-        The PadmetRef instance
+    d_classes_ontology: Dict[str, List[str]]
+        MetaCyc classes dictionary
 
     Returns
     -------
@@ -42,18 +60,10 @@ def extract_metacyc_classes(metabolic_objects: Collection[str],
     print(f'{len(metabolic_objects)} metabolic objects to classify')
     for obj in metabolic_objects:
         try:
-            rel = padmet_ref.dicOfRelationIn[obj]
+            d_obj_classes[obj] = d_classes_ontology[obj]
+            classified = True
         except KeyError:
-            rel = None
-        classified = False
-
-        if rel is not None:
-            for r in rel:
-                if r.type == 'is_a_class':
-                    classified = True
-                    if obj not in d_obj_classes.keys():
-                        d_obj_classes[obj] = list()
-                    d_obj_classes[obj].append(r.id_out)
+            classified = False
         if not classified:
             print(f'{obj} not classified.')
     print(f'{len(d_obj_classes)}/{len(metabolic_objects)} metabolic objects classified')
@@ -62,14 +72,15 @@ def extract_metacyc_classes(metabolic_objects: Collection[str],
 
 # For EC
 # --------------------------------------------------------------------------------------------------
-def extract_ec_classes(ec_set: Collection[str]):
+def extract_ec_classes(ec_set: Collection[str], d_classes_ontology):
     ec_classes = dict()
     for ec in ec_set:
         parent = ec.split('.')
         parent[-1] = '-'
         parent = '.'.join(parent)
+        d_classes_ontology[ec] = [parent]
         ec_classes[ec] = [parent]
-    return ec_classes
+    return ec_classes, d_classes_ontology
 
 
 # For ChEBI Ontology
@@ -95,7 +106,6 @@ def extract_chebi_roles(chebi_ids: Collection[str], endpoint_url: str) \
     all_roles = dict()
     for chebi_id in chebi_ids:
         roles = set()
-        molecule = chebi_id
         sparql = SPARQLWrapper(endpoint_url)
         sparql.setQuery(f"""
         PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
@@ -130,21 +140,115 @@ def extract_chebi_roles(chebi_ids: Collection[str], endpoint_url: str) \
         """)
         sparql.setReturnFormat(JSON)
         results = sparql.query().convert()
-
+        parent_roles = set()
         for result in results["results"]["bindings"]:
             role = result['roleLabel']['value']
             parent_role = result['parentRoleLabel']['value']
+            parent_roles.add(parent_role)
             roles.add(result['roleLabel']['value'])
             if role not in d_roles_ontology:
                 d_roles_ontology[role] = set()
             d_roles_ontology[role].add(parent_role)
-        roles.add('role')
-        all_roles[chebi_id] = roles
+        if roles:
+            d_roles_ontology[chebi_id] = list(roles.difference(parent_roles))
+            roles.add(ROOTS[CHEBI])
+            all_roles[chebi_id] = roles
+        else:
+            print(f'No ChEBI role found for : {chebi_id}')
 
     for c, p in d_roles_ontology.items():
         d_roles_ontology[c] = list(p)
 
     return all_roles, d_roles_ontology
+
+
+def extract_go_classes(go_ids: Collection[str], endpoint_url: str) \
+        -> Tuple[Dict[str, Set[str]], Dict[str, List[str]]]:
+    """
+
+    Parameters
+    ----------
+    go_ids: Collection[str]
+        Collection of GO IDs
+    endpoint_url: str
+        URL endpoint string
+
+    Returns
+    -------
+    Tuple[Dict[str, Set[str]], Dict[str, List[str]]]
+        Dictionary of all roles associated for each ChEBI ID
+        Dictionary of roles ontology, associating for each role, its parent roles
+    """
+    d_classes_ontology = dict()
+    all_classes = dict()
+    for go in go_ids:
+        go = go.lower()
+        go_classes = set()
+        sparql = SPARQLWrapper(endpoint_url)
+        sparql.setQuery(f"""
+        PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX rdfs:<http://www.w3.org/2000/01/rdf-schema#>
+        PREFIX owl: <http://www.w3.org/2002/07/owl#>
+        PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+        PREFIX dc: <http://purl.org/dc/elements/1.1/>
+        PREFIX dcterms: <http://purl.org/dc/terms/>
+        PREFIX oboInOwl: <http://www.geneontology.org/formats/oboInOwl#>
+        PREFIX taxon: <http://purl.uniprot.org/taxonomy/>
+        PREFIX uniprot: <http://purl.uniprot.org/uniprot/>
+        PREFIX up:<http://purl.uniprot.org/core/>
+        PREFIX go: <http://purl.obolibrary.org/obo/GO_>
+        PREFIX goavoc: <http://bio2rdf.org/goa_vocabulary:>
+        
+        SELECT ?goLabel ?parentGoLabel
+        WHERE {{
+           {go} rdfs:subClassOf* ?go .
+           ?go rdfs:label ?goLabel .
+           ?go rdf:type owl:Class .
+           ?go rdfs:subClassOf ?parentGo .
+           ?parentGo rdfs:label ?parentGoLabel .
+           ?parentGo rdf:type owl:Class .
+        }}
+        """)
+        sparql.setReturnFormat(JSON)
+        results = sparql.query().convert()
+        parent_classes = set()
+        for result in results["results"]["bindings"]:
+            go_class = result['goLabel']['value']
+            parent_class = result['parentGoLabel']['value']
+            parent_classes.add(parent_class)
+            go_classes.add(go_class)
+            go_classes.add(parent_class)
+            if parent_class in GO_ROOTS:
+                d_classes_ontology[parent_class] = [ROOTS[GO]]
+            if go_class not in d_classes_ontology:
+                d_classes_ontology[go_class] = set()
+            d_classes_ontology[go_class].add(parent_class)
+        if go_classes:
+            d_classes_ontology[go] = list(go_classes.difference(parent_classes))
+            go_classes.add(ROOTS[GO])
+            all_classes[go] = go_classes
+        else:
+            print(f'No GO class found for : {go}')
+
+    for c, p in d_classes_ontology.items():
+        d_classes_ontology[c] = list(p)
+    return all_classes, d_classes_ontology
+
+
+def extract_classes(ontology, metabolic_objects, root, d_classes_ontology=None, endpoint_url=None):
+    if ontology == METACYC:
+        leaf_classes = extract_metacyc_classes(metabolic_objects, d_classes_ontology)
+        return get_all_classes(leaf_classes, d_classes_ontology, root), d_classes_ontology
+    if ontology == EC:
+        leaf_classes, d_classes_ontology = extract_ec_classes(metabolic_objects, d_classes_ontology)
+        return get_all_classes(leaf_classes, d_classes_ontology, root), d_classes_ontology
+    if ontology == CHEBI:
+        return extract_chebi_roles(metabolic_objects, endpoint_url)
+    if ontology == GO:
+        return extract_go_classes(metabolic_objects, endpoint_url)
+    if ontology == KEGG:
+        leaf_classes = extract_metacyc_classes(metabolic_objects, d_classes_ontology)
+        return get_all_classes(leaf_classes, d_classes_ontology, root), d_classes_ontology
 
 
 # For all Ontology - Utils
@@ -211,13 +315,15 @@ def get_all_classes(met_classes: Dict[str, List[str]], d_classes_ontology: Dict[
     return all_classes_met
 
 
-def get_classes_abondance(all_classes: Dict[str, Set[str]]) -> Dict[str, int]:
+def get_classes_abondance(all_classes: Dict[str, Set[str]], show_leaves: bool) -> Dict[str, int]:
     """ Indicate for each class the number of metabolites found belonging to the class
 
     Parameters
     ----------
     all_classes: Dict[str, Set[str]] (Dict[metabolite, Set[class]])
         Dictionary associating for each metabolite the list of all parent classes it belongs to.
+    show_leaves: bool
+        True to show input metabolic objets at sunburst leaves
 
     Returns
     -------
@@ -226,7 +332,8 @@ def get_classes_abondance(all_classes: Dict[str, Set[str]]) -> Dict[str, int]:
     """
     classes_abondance = dict()
     for met, classes in all_classes.items():
-        # classes_abondance[met] = 1
+        if show_leaves:
+            classes_abondance[met] = 1
         for c in classes:
             if c not in classes_abondance.keys():
                 classes_abondance[c] = 1
@@ -257,31 +364,9 @@ def get_children_dict(parent_dict: Dict[str, List[str]]) -> Dict[str, List[str]]
     return children_dict
 
 
-def select_root(count_input: Dict[str, int], parent: Dict[str, List[str]], act_root) \
-        -> Tuple[Set[str], str, Dict[str, List[str]]]:
-    # TODO: Fix, understand why it doesn't works everytime
-    """ Select the root to use and return tax IDs to exclude from the figure. Keep as root the tax
-    ID shared by all taxa having the lowest taxonomic rank.
-
-    Parameters
-    ----------
-    count_input: Dict[str, int]
-        Dictionary associating to each class, the count.
-    parent: Dict[str, List[str]]
-        Dictionary associating to each class, its parent classes.
-
-    Returns
-    -------
-    Tuple[Set[str], str, Dict[str, List[str]]]
-        Set of tax IDs to exclude and Parent dictionary modified for the root ID.
-    """
-    max_count = max(count_input.values())
-    roots = {x for x, y in count_input.items() if y == max_count}
-    root = 1
-    for met, ch_id in parent.items():
-        if ch_id != [act_root]:
-            for ch in ch_id:
-                if parent[ch][0] in roots and ch not in roots:
-                    root = parent[ch][0]
-    parent[root] = ['']
-    return set(roots).difference({root}), root, parent
+def reduce_d_ontology(d_classes_ontology, classes_abundance):
+    reduced_d_ontology = dict()
+    for k, v in d_classes_ontology.items():
+        if k in classes_abundance:
+            reduced_d_ontology[k] = v
+    return reduced_d_ontology
