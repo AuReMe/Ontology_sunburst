@@ -89,3 +89,6 @@ a dictionary `{class: [parent classes]}`
 analysis significance of a set according to a reference set of metabolic 
 objects
 
+# Documentation
+
+View full documentation here : https://github.com/AuReMe/Ontosunburst/wiki 
