@@ -1,0 +1,41 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ontosunburst"
+version = "0.0.1"
+authors = [
+    {name="Pauline Hamon-Giraud", email="pauline.hamongiraud@gmail.com"},
+    {name="AuReMe", email="gem-aureme@inria.fr"}
+]
+maintainers = [
+  {name="Pauline Hamon-Giraud", email="pauline.hamongiraud@gmail.com"}
+]
+description = "Sunbursts for ontologies"
+dependencies = [
+  "numpy>=1.22.0",
+  "plotly>=5.17.0",
+  "scipy>=1.8.1",
+  "SPARQLWrapper>=2.0.0",
+]
+readme = "README.md"
+license = {file = "LICENSE"}
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3.10",
+    "Operating System :: Unix",
+    'Development Status :: 3 - Alpha',
+    'Intended Audience :: Science/Research',
+    'Topic :: Scientific/Engineering :: Bio-Informatics',
+]
+keywords = ["sunburst", "tree", "ontology", "visualisation", "enrichment", "gene ontology", "chebi"]
+
+[project.urls]
+Homepage = 'https://github.com/AuReMe/Ontology_sunburst.git'
+Documentation = ''
+Repository = 'https://github.com/AuReMe/Ontology_sunburst.git'
+Issues = ''
+
+[project.scripts]
+ontobi = "ontosunburst.__main__:main"

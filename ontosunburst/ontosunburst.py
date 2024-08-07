@@ -1,80 +1,99 @@
 import os
 import json
-from typing import Collection
+from typing import List, Dict
+from time import time
 import plotly.graph_objects as go
 
-from ontosunburst.ontology import get_classes_abondance, get_children_dict, extract_classes, \
-    reduce_d_ontology, METACYC, CHEBI, EC, GO, KEGG, ROOTS
+from ontosunburst.ontology import get_abundance_dict, get_classes_abundance, get_classes_scores, \
+    extract_classes, reduce_d_ontology, METACYC, CHEBI, EC, GO, KEGG, ROOTS
 
-from ontosunburst.sunburst_fig import get_fig_parameters, get_data_proportion, \
-    generate_sunburst_fig, BINOMIAL_TEST, TOPOLOGY_A, ENRICHMENT_A, ROOT_CUT
+from ontosunburst.data_table_tree import DataTable, get_name, BINOMIAL_TEST, ROOT_CUT, PATH_UNCUT
+from ontosunburst.sunburst_fig import generate_sunburst_fig, TOPOLOGY_A, ENRICHMENT_A
 
 # ==================================================================================================
 #                                           CONSTANTS
 # ==================================================================================================
 
-# DEFAULT FILES
-# -------------
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
-# For MetaCyc
-METACYC_FILE = os.path.join(CURRENT_DIR, 'Inputs', 'MetaCyc26_0_classes.json')
-# For EC numbers
-EC_ONTO_FILE = os.path.join(CURRENT_DIR, 'Inputs', 'enzymes_ontology.json')
-EC_NAMES_FILE = os.path.join(CURRENT_DIR, 'Inputs', 'enzymes_class_names.json')
-# For KEGG
-KEGG_ONTO_FILE = os.path.join(CURRENT_DIR, 'Inputs', 'kegg_onto.json')
-# For ChEBI
-CHEBI_URL = 'http://localhost:3030/chebi/'
-# For GO
-GO_URL = 'http://localhost:3030/go/'
+# Dictionary json files
+# ---------------------
+DEFAULT_FILE = {METACYC: os.path.join(CURRENT_DIR, 'Inputs', 'MetaCyc26_0_classes.json'),
+                EC: os.path.join(CURRENT_DIR, 'Inputs', 'enzymes_ontology.json'),
+                KEGG: os.path.join(CURRENT_DIR, 'Inputs', 'kegg_onto.json')}
+# Names json files
+# ----------------
+DEFAULT_NAMES = {EC: os.path.join(CURRENT_DIR, 'Inputs', 'enzymes_class_names.json'),
+                 METACYC: None, KEGG: None, CHEBI: None, GO: None}
+DEFAULT = 'default'
+# Sparql URL
+# ----------
+DEFAULT_URL = {CHEBI: 'http://localhost:3030/chebi/',
+               GO: 'http://localhost:3030/go/'}
 
 
 # ==================================================================================================
 #                                            WORKFLOW
 # ==================================================================================================
 
-def ontosunburst(ontology: str,
-                 metabolic_objects: Collection[str],
-                 reference_set: Collection[str] = None,
+def ontosunburst(interest_set: List[str],
+                 ontology: str = None,
+                 root: str = None,
+                 abundances: List[float] = None,
+                 scores: Dict[str, float] = None,
+                 reference_set: List[str] = None,
+                 ref_abundances: List[float] = None,
                  analysis: str = TOPOLOGY_A,
-                 output: str = None,
-                 class_file: str = None,
-                 names_file: str = None,
+                 output: str = 'sunburst',
+                 write_output: bool = True,
+                 class_ontology: str or Dict[str, str] = None,
+                 labels: str or Dict[str, str] = DEFAULT,
                  endpoint_url: str = None,
                  test: str = BINOMIAL_TEST,
-                 full: bool = True,
-                 total: bool = True,
                  root_cut: str = ROOT_CUT,
+                 path_cut: str = PATH_UNCUT,
                  ref_base: bool = False,
-                 show_leaves: bool = False) -> go.Figure:
-    """
+                 show_leaves: bool = False,
+                 **kwargs) -> go.Figure:
+    """ Main function to be called generating the sunburst figure
 
     Parameters
     ----------
-    ontology: str
-        Ontology to use, must be in : [metacyc, ec, chebi]
-    metabolic_objects: Collection[str]
-        Set of metabolic objects to classify
-    reference_set: Collection[str] (optional, default=None)
-        Set of reference metabolic objects
+    interest_set: List[str]
+        Interest set of concepts to classify
+    ontology: str (optional, default=None)
+        Ontology to use, must be in : [metacyc, ec, chebi, kegg, go]
+    root: str (optional, default=None)
+        Root item of the ontology.
+    abundances: List[str] (optional, default=None)
+        Abundance values associated to interest_set list parameter
+    scores: Dict[str, float] (optional, default=None)
+        Dictionary associating for each ontology ID, its enrichment score. If None enrichment will
+        be calculated.
+    reference_set: List[str] (optional, default=None)
+        Reference set of concepts
+    ref_abundances: List[str] (optional, default=None)
+        Abundance values associated to reference_set list parameter
     analysis: str (optional, default=topology)
         Analysis mode, must be in : [topology, enrichment]
     output: str (optional, default=None)
-        Path to output to save figure
-    class_file: str (optional, default=None)
-        Path to class ontology file
-    names_file: str (optional, default=None)
-        Path to EC_ID - EC_NAME association json file
+        Path of the output to save figure, if None, outputs will be sunburst.html and sunburst.tsv
+        files
+    write_output: bool (optional, default=True)
+        True to write the html figure and tsv class files, False to only return plotly sunburst
+        figure
+    class_ontology: str or Dict[str, str] (optional, default=None)
+        Class ontology dictionary or json file.
+    labels: str or Dict[str, str] (optional, default=default)
+        Path to ID-LABELS association json file or ID-LABELS association dictionary or 'default' to
+        use default files. If None ontology IDs will be used as labels.
     endpoint_url: str (optional, default=None)
-        URL of ChEBI ontology for SPARQL requests
+        URL of ChEBI or GO ontology for SPARQL requests
     test: str (optional, default=binomial)
         Type of test if analysis=enrichment, must be in : [binomial, hypergeometric]
-    full: bool (optional, default=True)
-        True to duplicate labels if +1 parents (False to take exactly 1 random parent)
-    total: bool (optional, default=True)
-        True to have branch values proportional of the total parent (may not work in some cases)
-    root_cut: str (optional, default=ROOT_CUT)
+    root_cut: str (optional, default=cut)
         mode for root cutting (uncut, cut, total)
+    path_cut: str (optional, default=uncut)
+        mode for nested path cutting (uncut, deeper, higher, bound)
     ref_base: bool (optional, default=False)
         True to have the base classes representation of the reference set in the figure.
     show_leaves: bool (optional, default=False)
@@ -85,208 +104,179 @@ def ontosunburst(ontology: str,
     go.Figure
         Plotly graph_objects figure of the sunburst
     """
-
-    # METACYC --------------------------------------------------------------------------------------
-    if ontology == METACYC:
-        if class_file is None:
-            class_file = METACYC_FILE
+    start_time = time()
+    # LOAD NAMES -----------------------------------------------------------------------------------
+    if labels == DEFAULT:
+        if ontology is not None:
+            labels = DEFAULT_NAMES[ontology]
+        else:
+            labels = None
+    if labels is not None:
+        if type(labels) == str:
+            with open(labels, 'r') as f:
+                names = json.load(f)
+        else:
+            names = labels
+    else:
         names = None
-        with open(class_file, 'r') as f:
-            d_classes_ontology = json.load(f)
-    # EC -------------------------------------------------------------------------------------------
-    elif ontology == EC:
-        if class_file is None:
-            class_file = EC_ONTO_FILE
-        if names_file is None:
-            names_file = EC_NAMES_FILE
-        with open(class_file, 'r') as f:
-            d_classes_ontology = json.load(f)
-        with open(names_file, 'r') as f:
-            names = json.load(f)
-    # KEGG -----------------------------------------------------------------------------------------
-    elif ontology == KEGG:
-        if class_file is None:
-            class_file = KEGG_ONTO_FILE
-        names = None
-        with open(class_file, 'r') as f:
-            d_classes_ontology = json.load(f)
-    # CHEBI ----------------------------------------------------------------------------------------
-    elif ontology == CHEBI:
-        endpoint_url = CHEBI_URL
-        d_classes_ontology = None
-        names = None
-    # GO -------------------------------------------------------------------------------------------
-    elif ontology == GO:
-        endpoint_url = GO_URL
-        d_classes_ontology = None
-        names = None
+    # DICTIONARY / JSON INPUT ----------------------------------------------------------------------
+    if ontology == METACYC or ontology == EC or ontology == KEGG or ontology is None:
+        if ontology is None:
+            if class_ontology is None:
+                raise ValueError('If no default ontology, must fill class_ontology parameter')
+            if root is None:
+                raise ValueError('If no default ontology, must fill root parameter')
+        else:
+            if class_ontology is None:
+                class_ontology = DEFAULT_FILE[ontology]
+        if type(class_ontology) == str:
+            with open(class_ontology, 'r') as f:
+                class_ontology = json.load(f)
+    # SPARQL URL INPUT -----------------------------------------------------------------------------
+    elif ontology == CHEBI or ontology == GO:
+        if endpoint_url is None:
+            endpoint_url = DEFAULT_URL[ontology]
     # ELSE -----------------------------------------------------------------------------------------
     else:
-        raise ValueError(f'ontology parameter must be in : {[METACYC, EC, KEGG, CHEBI, GO]}')
+        raise ValueError(f'ontology parameter must be in {[METACYC, EC, KEGG, GO, CHEBI, None]}')
+    # GET ROOT -------------------------------------------------------------------------------------
+    if ontology is not None:
+        root = ROOTS[ontology]
     # WORKFLOW -------------------------------------------------------------------------------------
-    return _global_analysis(ontology=ontology, analysis=analysis,
-                            metabolic_objects=metabolic_objects, reference_set=reference_set,
-                            d_classes_ontology=d_classes_ontology, endpoint_url=endpoint_url,
-                            output=output, full=full, names=names, total=total, test=test,
-                            root=ROOTS[ontology], root_cut=root_cut, ref_base=ref_base,
-                            show_leaves=show_leaves)
+    fig = _global_analysis(ontology=ontology, analysis=analysis,
+                           metabolic_objects=interest_set, abundances=abundances,
+                           scores=scores,
+                           reference_set=reference_set, ref_abundances=ref_abundances,
+                           d_classes_ontology=class_ontology, endpoint_url=endpoint_url,
+                           output=output, write_output=write_output, names=names,
+                           test=test, root=root, root_cut=root_cut, path_cut=path_cut,
+                           ref_base=ref_base, show_leaves=show_leaves, **kwargs)
+    end_time = time()
+    print(f'Execution time : {end_time - start_time} seconds')
+    return fig
 
 
 # ==================================================================================================
 #                                             FUNCTIONS
 # ==================================================================================================
-def _global_analysis(ontology, analysis, metabolic_objects, reference_set, d_classes_ontology,
-                     endpoint_url, output, full, names, total, test, root, root_cut, ref_base,
-                     show_leaves):
-    obj_all_classes, d_classes_ontology = extract_classes(ontology, metabolic_objects, root,
-                                                          d_classes_ontology=d_classes_ontology,
-                                                          endpoint_url=endpoint_url)
-    classes_abundance = get_classes_abondance(obj_all_classes, show_leaves)
-
-    if output is not None and ontology == METACYC:
-        write_met_classes(obj_all_classes, output)
-
-    if reference_set is not None:
-        ref_all_classes, d_classes_ontology = extract_classes(ontology, reference_set, root,
-                                                              d_classes_ontology=d_classes_ontology,
-                                                              endpoint_url=endpoint_url)
-    else:
-        ref_all_classes = None
-
-    # Enrichment figure
-    if analysis == ENRICHMENT_A:
-        if ref_all_classes is not None:
-            return _enrichment_analysis(ref_all_classes=ref_all_classes,
-                                        classes_abundance=classes_abundance,
-                                        d_classes_ontology=d_classes_ontology,
-                                        output=output, full=full, names=names, total=total,
-                                        test=test, root=root, root_cut=root_cut, ref_base=ref_base,
-                                        show_leaves=show_leaves)
-        else:
-            raise AttributeError('Missing reference set parameter')
-
-    # Proportion figure
-    elif analysis == TOPOLOGY_A:
-        return _topology_analysis(ref_all_classes=ref_all_classes,
-                                  classes_abundance=classes_abundance,
-                                  d_classes_ontology=d_classes_ontology,
-                                  output=output, full=full, names=names, total=total,
-                                  root=root, root_cut=root_cut, ref_base=ref_base,
-                                  show_leaves=show_leaves)
-
-    else:
-        raise ValueError(f'Value of analysis parameter must be in : {[TOPOLOGY_A, ENRICHMENT_A]}')
-
-
-def _topology_analysis(ref_all_classes, classes_abundance, d_classes_ontology, output, full,
-                       names, total, root, root_cut, ref_base, show_leaves) -> go.Figure:
-    """ Performs the proportion analysis
-
-    Parameters
-    ----------
-    ref_all_classes
-    classes_abundance
-    d_classes_ontology
-    output
-    full
-    names
-    total
-    root
-    root_cut
-    ref_base
-
-    Returns
-    -------
-    go.Figure
-        Plotly graph_objects figure of the sunburst
+def _global_analysis(ontology, analysis, metabolic_objects, abundances, scores, reference_set,
+                     ref_abundances, d_classes_ontology, endpoint_url, output, write_output, names,
+                     test, root, root_cut, path_cut, ref_base, show_leaves, **kwargs):
     """
-    if ref_all_classes is not None:
-        ref_classes_abundance = get_classes_abondance(ref_all_classes, show_leaves)
-        d_classes_ontology = reduce_d_ontology(d_classes_ontology, ref_classes_abundance)
-
-        if ref_base:
-            data = get_fig_parameters(classes_abondance=ref_classes_abundance,
-                                      parent_dict=d_classes_ontology,
-                                      children_dict=get_children_dict(d_classes_ontology),
-                                      root_item=root, subset_abundance=classes_abundance,
-                                      full=full, names=names)
-
-        else:
-            data = get_fig_parameters(classes_abondance=classes_abundance,
-                                      parent_dict=d_classes_ontology,
-                                      children_dict=get_children_dict(d_classes_ontology),
-                                      root_item=root, full=full, names=names)
-
-        data = get_data_proportion(data, total)
-        names = names is not None
-        return generate_sunburst_fig(data=data, output=output, analysis=TOPOLOGY_A,
-                                     ref_classes_abundance=ref_classes_abundance, names=names,
-                                     total=total, root_cut=root_cut, ref_base=ref_base)
-
-    else:
-        d_classes_ontology = reduce_d_ontology(d_classes_ontology, classes_abundance)
-        data = get_fig_parameters(classes_abondance=classes_abundance,
-                                  parent_dict=d_classes_ontology,
-                                  children_dict=get_children_dict(d_classes_ontology),
-                                  root_item=root, full=full, names=names)
-        data = get_data_proportion(data, total)
-        names = names is not None
-        return generate_sunburst_fig(data=data, output=output, analysis=TOPOLOGY_A,
-                                     names=names, total=total, root_cut=root_cut, ref_base=ref_base)
-
-
-def _enrichment_analysis(ref_all_classes, classes_abundance, d_classes_ontology, output, full,
-                         names, total, test, root, root_cut, ref_base, show_leaves) -> go.Figure:
-    """ Performs the comparison analysis
 
     Parameters
     ----------
-    ref_all_classes
-    classes_abundance
+    ontology
+    analysis
+    metabolic_objects
+    abundances
+    reference_set
+    ref_abundances
     d_classes_ontology
+    endpoint_url
     output
-    full
+    write_output
     names
-    total
     test
     root
     root_cut
+    path_cut
     ref_base
+    show_leaves
+    kwargs
 
     Returns
     -------
-    go.Figure
-        Plotly graph_objects figure of the sunburst
+
     """
-    ref_classes_abundance = get_classes_abondance(ref_all_classes, show_leaves)
+    # EXTRACT CLASSES
+    # ----------------------------------------------------------------------------------------------
+    obj_all_classes, d_classes_ontology, names = extract_classes(ontology, metabolic_objects, root,
+                                                                 d_classes_ontology, endpoint_url,
+                                                                 names)
+    if not obj_all_classes:
+        print('No object classified, passing.')
+    if write_output:
+        write_met_classes(ontology, obj_all_classes, output, names)
 
-    if ref_base:
-        data = get_fig_parameters(classes_abondance=ref_classes_abundance,
-                                  parent_dict=d_classes_ontology,
-                                  children_dict=get_children_dict(d_classes_ontology),
-                                  root_item=root, subset_abundance=classes_abundance,
-                                  full=full, names=names)
+    # ABUNDANCES
+    # ----------------------------------------------------------------------------------------------
+    # Interest
+    abundances_dict = get_abundance_dict(abundances=abundances,
+                                         metabolic_objects=metabolic_objects,
+                                         ref=False)
+    classes_abundance = get_classes_abundance(obj_all_classes, abundances_dict, show_leaves)
+    # Reference
+    if reference_set is not None:
+        ref_abundances_dict = get_abundance_dict(abundances=ref_abundances,
+                                                 metabolic_objects=reference_set,
+                                                 ref=True)
+        ref_all_classes, d_classes_ontology, names = extract_classes(ontology, reference_set, root,
+                                                                     d_classes_ontology,
+                                                                     endpoint_url, names)
+        ref_classes_abundance = get_classes_abundance(ref_all_classes, ref_abundances_dict,
+                                                      show_leaves)
     else:
-        data = get_fig_parameters(classes_abondance=classes_abundance,
-                                  parent_dict=d_classes_ontology,
-                                  children_dict=get_children_dict(d_classes_ontology),
-                                  root_item=root, full=full, names=names)
+        ref_classes_abundance = None
+    # Scores
+    classes_scores = None
+    if scores is not None:
+        classes_scores = get_classes_scores(classes_abundance, scores, root)
 
-    data = get_data_proportion(data, total)
-    names = names is not None
-    return generate_sunburst_fig(data=data, output=output, analysis=ENRICHMENT_A,
-                                 ref_classes_abundance=ref_classes_abundance, test=test,
-                                 names=names, total=total, root_cut=root_cut)
+    # DATA TABLE
+    # ----------------------------------------------------------------------------------------------
+    data = DataTable()
+    if ref_classes_abundance is not None:
+        d_classes_ontology = reduce_d_ontology(d_classes_ontology,
+                                               {**ref_classes_abundance, **classes_abundance})
+        ref_set = True
+        data.fill_parameters(set_abundance=classes_abundance, ref_abundance=ref_classes_abundance,
+                             parent_dict=d_classes_ontology, root_item=root, names=names,
+                             ref_base=ref_base)
+    else:
+        ref_set = False
+        d_classes_ontology = reduce_d_ontology(d_classes_ontology, classes_abundance)
+        data.fill_parameters(set_abundance=classes_abundance, ref_abundance=classes_abundance,
+                             parent_dict=d_classes_ontology,  root_item=root, names=names,
+                             ref_base=ref_base)
+    data.calculate_proportions(ref_base)
+    significant = None
+    if analysis == ENRICHMENT_A:
+        significant = data.make_enrichment_analysis(test, classes_scores)
+    data.cut_root(root_cut)
+    data.cut_nested_path(path_cut, ref_base)
+
+    # FIGURE
+    # ----------------------------------------------------------------------------------------------
+    return generate_sunburst_fig(data=data, output=output, analysis=analysis, test=test,
+                                 significant=significant, ref_set=ref_set,
+                                 write_fig=write_output, **kwargs)
 
 
-def write_met_classes(all_classes, output):
+def write_met_classes(ontology: str, all_classes: Dict[str, List[str]], output: str,
+                      names: Dict[str, str]):
+    """ Writes, for each input class, all its ancestors in a .tsv file.
+
+    Parameters
+    ----------
+    ontology
+    all_classes
+    output
+    names
+    """
+    if ontology is None:
+        ontology = ''
+    links_dict = {METACYC: 'https://metacyc.org/compound?orgid=META&id=',
+                  CHEBI: 'https://www.ebi.ac.uk/chebi/searchId.do?chebiId=CHEBI:',
+                  EC: 'https://enzyme.expasy.org/EC/',
+                  KEGG: 'https://www.genome.jp/entry/',
+                  GO: 'https://amigo.geneontology.org/amigo/term/',
+                  '': ''}
     with open(f'{output}.tsv', 'w') as f:
-        f.write('\t'.join(['Compound', 'Classes', 'Common names', 'MetaCyc link']) + '\n')
-        for met, classes, in all_classes.items():
-            try:
-                # name = ' / '.join(pref.dicOfNode[met].misc['COMMON-NAME'])
-                name = ''
-            except KeyError:
-                name = ''
-            link = f'https://metacyc.org/compound?orgid=META&id={met}'
-            f.write('\t'.join([met, ', '.join(classes), name, link]) + '\n')
+        f.write('\t'.join(['ID', 'Label', 'Classes ID', 'Classes Label', 'Link']) + '\n')
+        for met_id, classes_id, in all_classes.items():
+            link = links_dict[ontology] + met_id
+            met_lab = get_name(met_id, names)
+            classes_lab = [get_name(cl, names) for cl in classes_id]
+            f.write('\t'.join([met_id, met_lab, ', '.join(classes_id), ', '.join(classes_lab),
+                               link]) + '\n')
