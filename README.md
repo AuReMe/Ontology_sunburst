@@ -1,3 +1,8 @@
+[![](https://img.shields.io/badge/python-3.10-blue.svg)]()
+[![](https://img.shields.io/badge/version-0.0.3-green.svg)](https://github.com/AuReMe/Ontosunburst/releases/tag/v0.0.3)
+[![](https://img.shields.io/badge/documentation-Wiki-orange.svg)](https://github.com/AuReMe/Ontosunburst/wiki)
+
+
 # Ontosunburst
 
 Sunburst visualisation of an ontology representing classes of sets
@@ -14,10 +19,11 @@ Python 3.10 recommended
 
 Requirements from `requirements.txt`
 
-- numpy>=1.22.0
+- numpy>=1.26.1
 - plotly>=5.17.0
-- scipy>=1.8.1
+- scipy>=1.11.3
 - SPARQLWrapper>=2.0.0
+- pandas>=1.5.3
 
 ### Optional
 
@@ -30,12 +36,22 @@ Need *Apache Jena Fuseki* SPARQL server for ChEBI and GO requests and their OWL 
 
 ## Installation
 
+### PyPI
+
+```commandline
+pip install ontosunburst
+```
+
+### Local
+
+Inside the cloned repository :
+
 ```commandline
 pip install -r requirements.txt
 pip install -e .
 ```
 
-### Set up Jena SPARQL server (optional : for ChEBI and GO)
+## Set up Jena SPARQL server (optional : for ChEBI and GO)
 
 Execute followed bash script to launch server.
 
