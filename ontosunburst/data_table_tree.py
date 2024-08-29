@@ -439,8 +439,9 @@ class DataTable:
                 to_keep_up = path[0]
                 to_keep_do = path[-1]
                 self.parents[to_keep_do] = self.ids[to_keep_up]
-                self.labels[to_keep_up] += ' ...'
-                self.labels[to_keep_do] = '... ' + self.labels[to_keep_do]
+                if len(nested_paths) > 2:
+                    self.labels[to_keep_up] += ' ...'
+                    self.labels[to_keep_do] = '... ' + self.labels[to_keep_do]
         self.delete_value(to_del)
 
     def delete_value(self, v_index: int or List[int]):

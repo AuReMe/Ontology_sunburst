@@ -66,19 +66,21 @@ def main():
 
 
 def extract_input(input_file):
-    id_lst = []
-    ab_lst = []
-    sc_d = {}
-    with open(input_file, 'r') as f:
-        for l in f:
-            l = l.strip().split('\t')
-            id_lst.append(l[0])
-            if len(l) == 3:
-                sc_d[l[0]] = float(l[2])
-            if len(l) >= 2:
-                ab_lst.append(float(l[1]))
-            else:
-                ab_lst.append(1)
-    if not sc_d:
-        sc_d = None
-    return id_lst, ab_lst, sc_d
+    if input_file is not None:
+        id_lst = []
+        ab_lst = []
+        sc_d = {}
+        with open(input_file, 'r') as f:
+            for l in f:
+                l = l.strip().split('\t')
+                id_lst.append(l[0])
+                if len(l) == 3:
+                    sc_d[l[0]] = float(l[2])
+                if len(l) >= 2:
+                    ab_lst.append(float(l[1]))
+                else:
+                    ab_lst.append(1)
+        if not sc_d:
+            sc_d = None
+        return id_lst, ab_lst, sc_d
+    return None, None, None

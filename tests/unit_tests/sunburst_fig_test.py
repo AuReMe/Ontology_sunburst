@@ -3,6 +3,7 @@ import os.path
 import unittest
 import io
 import sys
+import copy
 from functools import wraps
 from unittest.mock import patch
 

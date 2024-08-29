@@ -60,8 +60,8 @@ def ontosunburst(interest_set: List[str],
     ----------
     interest_set: List[str]
         Interest set of concepts to classify
-    ontology: str (optional, default=None)
-        Ontology to use, must be in : [metacyc, ec, chebi, kegg, go]
+    ontology: str (optional, default=None, values in ['metacyc', 'ec', 'chebi', 'kegg', 'go', None])
+        Ontology to use
     root: str (optional, default=None)
         Root item of the ontology.
     abundances: List[str] (optional, default=None)
@@ -73,9 +73,9 @@ def ontosunburst(interest_set: List[str],
         Reference set of concepts
     ref_abundances: List[str] (optional, default=None)
         Abundance values associated to reference_set list parameter
-    analysis: str (optional, default=topology)
-        Analysis mode, must be in : [topology, enrichment]
-    output: str (optional, default=None)
+    analysis: str (optional, default='topology', values in ['topology', 'enrichment'])
+        Analysis mode : topology or enrichment.
+    output: str (optional, default='sunburst')
         Path of the output to save figure, if None, outputs will be sunburst.html and sunburst.tsv
         files
     write_output: bool (optional, default=True)
@@ -83,21 +83,22 @@ def ontosunburst(interest_set: List[str],
         figure
     class_ontology: str or Dict[str, str] (optional, default=None)
         Class ontology dictionary or json file.
-    labels: str or Dict[str, str] (optional, default=default)
-        Path to ID-LABELS association json file or ID-LABELS association dictionary or 'default' to
-        use default files. If None ontology IDs will be used as labels.
+    labels: str or Dict[str, str] (optional, default='default')
+        Path to ID-LABELS association json file or ID-LABELS association dictionary or 'default'
+        to use default files. If None ontology IDs will be used as labels.
     endpoint_url: str (optional, default=None)
         URL of ChEBI or GO ontology for SPARQL requests
-    test: str (optional, default=binomial)
-        Type of test if analysis=enrichment, must be in : [binomial, hypergeometric]
-    root_cut: str (optional, default=cut)
-        mode for root cutting (uncut, cut, total)
-    path_cut: str (optional, default=uncut)
-        mode for nested path cutting (uncut, deeper, higher, bound)
+    test: str (optional, default='binomial', values in ['binomial', 'hypergeometric'])
+        Type of test if analysis=enrichment, binomial or hypergeometric test.
+    root_cut: str (optional, default='cut', values in ['uncut', 'cut', 'total'])
+        mode for root cutting (uncut, cut or total)
+    path_cut: str (optional, default='uncut', values in ['uncut', 'deeper', 'higher', 'bound'])
+        mode for nested path cutting (uncut, deeper, higher or bound)
     ref_base: bool (optional, default=False)
         True to have the base classes representation of the reference set in the figure.
     show_leaves: bool (optional, default=False)
         True to show input metabolic objets at sunburst leaves
+    **kwargs
 
     Returns
     -------
